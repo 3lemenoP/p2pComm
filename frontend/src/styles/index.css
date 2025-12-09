@@ -1,0 +1,15 @@
+/* P2PComm Terminal Aesthetic Styles */
+
+/* Import order is important:
+   1. Variables must be first (defines CSS custom properties)
+   2. Base styles (reset, body, scrollbars)
+   3. Layout (structural elements)
+   4. Components (buttons, modals, forms, etc.)
+   5. Responsive (media queries override earlier styles)
+*/
+
+@import './variables.css';
+@import './base.css';
+@import './layout.css';
+@import './components.css';
+@import './responsive.css';

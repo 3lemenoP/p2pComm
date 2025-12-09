@@ -1,0 +1,54 @@
+/* ========================================
+   TERMINAL COMMAND AESTHETIC
+   Design System Variables
+======================================== */
+:root {
+    /* Colors */
+    --color-bg-primary: #000000;
+    --color-bg-secondary: #0A0A0A;
+    --color-bg-tertiary: #141414;
+    --color-bg-hover: #1A1A1A;
+
+    --color-success: #00FF41;
+    --color-success-dim: #00AA2B;
+    --color-error: #FF0000;
+    --color-error-dim: #AA0000;
+    --color-warning: #FFB800;
+    --color-warning-dim: #AA7A00;
+    --color-info: #00FFFF;
+    --color-info-dim: #00AAAA;
+
+    --color-text-primary: #00FF41;
+    --color-text-secondary: #00AA2B;
+    --color-text-muted: #006622;
+    --color-text-inverse: #000000;
+
+    --color-border: #00FF41;
+    --color-border-dim: #004411;
+
+    /* Typography */
+    --font-mono: 'Courier New', 'Monaco', 'Consolas', 'Liberation Mono', monospace;
+    --font-size-xs: 10px;
+    --font-size-sm: 12px;
+    --font-size-base: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 20px;
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    /* Layout */
+    --sidebar-width: 300px;
+    --info-panel-width: 280px;
+    --header-height: 60px;
+    --compose-height: 120px;
+
+    /* Animation */
+    --transition-fast: 0.1s;
+    --transition-base: 0.2s;
+    --transition-slow: 0.3s;
+}

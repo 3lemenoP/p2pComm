@@ -1,0 +1,3176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>p2pComm - Secure Messaging</title>
+    <style>
+        /* ========================================
+           TERMINAL COMMAND AESTHETIC
+           Design System Variables
+        ======================================== */
+        :root {
+            /* Colors */
+            --color-bg-primary: #000000;
+            --color-bg-secondary: #0A0A0A;
+            --color-bg-tertiary: #141414;
+            --color-bg-hover: #1A1A1A;
+
+            --color-success: #00FF41;
+            --color-success-dim: #00AA2B;
+            --color-error: #FF0000;
+            --color-error-dim: #AA0000;
+            --color-warning: #FFB800;
+            --color-warning-dim: #AA7A00;
+            --color-info: #00FFFF;
+            --color-info-dim: #00AAAA;
+
+            --color-text-primary: #00FF41;
+            --color-text-secondary: #00AA2B;
+            --color-text-muted: #006622;
+            --color-text-inverse: #000000;
+
+            --color-border: #00FF41;
+            --color-border-dim: #004411;
+
+            /* Typography */
+            --font-mono: 'Courier New', 'Monaco', 'Consolas', 'Liberation Mono', monospace;
+            --font-size-xs: 10px;
+            --font-size-sm: 12px;
+            --font-size-base: 14px;
+            --font-size-lg: 16px;
+            --font-size-xl: 20px;
+
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+
+            /* Layout */
+            --sidebar-width: 300px;
+            --info-panel-width: 280px;
+            --header-height: 60px;
+            --compose-height: 120px;
+
+            /* Animation */
+            --transition-fast: 0.1s;
+            --transition-base: 0.2s;
+            --transition-slow: 0.3s;
+        }
+
+        /* ========================================
+           RESET & BASE STYLES
+        ======================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-mono);
+            font-size: var(--font-size-base);
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            overflow: hidden;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ========================================
+           LAYOUT STRUCTURE
+        ======================================== */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Top Header */
+        .header {
+            height: var(--header-height);
+            background: var(--color-bg-secondary);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--spacing-md);
+            position: relative;
+        }
+
+        .header::before,
+        .header::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--color-border);
+        }
+
+        .header::before {
+            top: 0;
+            left: 0;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .header::after {
+            top: 0;
+            right: 0;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .header-logo {
+            font-size: var(--font-size-xl);
+            font-weight: bold;
+            color: var(--color-success);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .header-logo::before {
+            content: '> ';
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border: 1px solid var(--color-border-dim);
+            background: var(--color-bg-tertiary);
+        }
+
+        .user-status {
+            width: 8px;
+            height: 8px;
+            background: var(--color-success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .network-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border: 1px solid var(--color-border-dim);
+            background: var(--color-bg-tertiary);
+            font-size: var(--font-size-sm);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Left Sidebar - Conversations */
+        .sidebar-left {
+            width: var(--sidebar-width);
+            background: var(--color-bg-secondary);
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border-dim);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-title {
+            font-size: var(--font-size-lg);
+            text-transform: uppercase;
+        }
+
+        .sidebar-title::before {
+            content: '[';
+            color: var(--color-success);
+        }
+
+        .sidebar-title::after {
+            content: ']';
+            color: var(--color-success);
+        }
+
+        .search-box {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border-dim);
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border-dim);
+            color: var(--color-text-primary);
+            padding: var(--spacing-sm);
+            font-family: var(--font-mono);
+            font-size: var(--font-size-sm);
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--color-border);
+        }
+
+        .search-input::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        .conversations-list {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-border-dim) var(--color-bg-secondary);
+        }
+
+        .conversation-item {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border-dim);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+            position: relative;
+        }
+
+        .conversation-item:hover {
+            background: var(--color-bg-hover);
+        }
+
+        .conversation-item.active {
+            background: var(--color-bg-tertiary);
+            border-left: 3px solid var(--color-success);
+        }
+
+        .conversation-item.active::before {
+            content: '>';
+            position: absolute;
+            left: var(--spacing-sm);
+            color: var(--color-success);
+        }
+
+        .conversation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .conversation-name {
+            font-weight: bold;
+            color: var(--color-success);
+        }
+
+        .conversation-time {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+        }
+
+        .conversation-preview {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conversation-unread {
+            display: inline-block;
+            background: var(--color-success);
+            color: var(--color-text-inverse);
+            padding: 2px 6px;
+            font-size: var(--font-size-xs);
+            margin-left: var(--spacing-xs);
+            font-weight: bold;
+        }
+
+        /* Center - Message Thread */
+        .message-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--color-bg-primary);
+        }
+
+        .thread-header {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--color-bg-secondary);
+        }
+
+        .thread-contact-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .thread-contact-name {
+            font-size: var(--font-size-lg);
+            font-weight: bold;
+            color: var(--color-success);
+        }
+
+        .thread-contact-status {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+        }
+
+        .thread-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-border-dim) var(--color-bg-primary);
+        }
+
+        .message {
+            display: flex;
+            gap: var(--spacing-sm);
+            max-width: 70%;
+            animation: messageSlide 0.2s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message.received {
+            align-self: flex-start;
+        }
+
+        .message-content {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border-dim);
+            padding: var(--spacing-sm) var(--spacing-md);
+            position: relative;
+        }
+
+        .message.sent .message-content {
+            border-color: var(--color-success-dim);
+        }
+
+        .message.sent .message-content::before,
+        .message.sent .message-content::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border: 1px solid var(--color-success-dim);
+        }
+
+        .message.sent .message-content::before {
+            top: 0;
+            right: 0;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .message.sent .message-content::after {
+            bottom: 0;
+            right: 0;
+            border-left: none;
+            border-top: none;
+        }
+
+        .message.received .message-content::before,
+        .message.received .message-content::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border: 1px solid var(--color-border-dim);
+        }
+
+        .message.received .message-content::before {
+            top: 0;
+            left: 0;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .message.received .message-content::after {
+            bottom: 0;
+            left: 0;
+            border-right: none;
+            border-top: none;
+        }
+
+        .message-text {
+            color: var(--color-text-primary);
+            word-wrap: break-word;
+        }
+
+        .message-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: var(--spacing-xs);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+        }
+
+        .message-time {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+        }
+
+        .message-status {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+        }
+
+        .message-status.delivered::before {
+            content: '✓ ';
+            color: var(--color-success);
+        }
+
+        .message-status.read::before {
+            content: '✓✓ ';
+            color: var(--color-success);
+        }
+
+        .message-status.encrypted::after {
+            content: ' [E2E]';
+            color: var(--color-info);
+        }
+
+        /* Compose Area */
+        .compose-area {
+            min-height: var(--compose-height);
+            border-top: 1px solid var(--color-border);
+            background: var(--color-bg-secondary);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .compose-toolbar {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-bottom: 1px solid var(--color-border-dim);
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .compose-input-area {
+            flex: 1;
+            display: flex;
+            padding: var(--spacing-md);
+            gap: var(--spacing-md);
+        }
+
+        .compose-input {
+            flex: 1;
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border-dim);
+            color: var(--color-text-primary);
+            padding: var(--spacing-sm);
+            font-family: var(--font-mono);
+            font-size: var(--font-size-base);
+            resize: none;
+            outline: none;
+        }
+
+        .compose-input:focus {
+            border-color: var(--color-border);
+        }
+
+        .compose-input::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        /* Right Sidebar - Info Panel */
+        .sidebar-right {
+            width: var(--info-panel-width);
+            background: var(--color-bg-secondary);
+            border-left: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-right.collapsed {
+            display: none;
+        }
+
+        .info-section {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border-dim);
+        }
+
+        .info-section-title {
+            font-size: var(--font-size-sm);
+            text-transform: uppercase;
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-success);
+        }
+
+        .info-section-title::before {
+            content: '// ';
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--spacing-xs) 0;
+            font-size: var(--font-size-sm);
+        }
+
+        .info-label {
+            color: var(--color-text-secondary);
+        }
+
+        .info-value {
+            color: var(--color-text-primary);
+            text-align: right;
+            word-break: break-all;
+        }
+
+        /* ========================================
+           BUTTONS
+        ======================================== */
+        .btn {
+            background: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            padding: var(--spacing-xs) var(--spacing-md);
+            font-family: var(--font-mono);
+            font-size: var(--font-size-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            background: var(--color-bg-hover);
+            border-color: var(--color-success);
+            color: var(--color-success);
+        }
+
+        .btn:active {
+            background: var(--color-success-dim);
+            color: var(--color-text-inverse);
+        }
+
+        .btn-primary {
+            background: var(--color-success);
+            color: var(--color-text-inverse);
+            border-color: var(--color-success);
+        }
+
+        .btn-primary:hover {
+            background: var(--color-success-dim);
+        }
+
+        .btn-icon {
+            padding: var(--spacing-xs);
+            min-width: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-danger {
+            border-color: var(--color-error);
+            color: var(--color-error);
+        }
+
+        .btn-danger:hover {
+            background: var(--color-error);
+            color: var(--color-text-inverse);
+        }
+
+        /* ========================================
+           MODALS
+        ======================================== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--color-bg-primary);
+            border: 2px solid var(--color-border);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            animation: modalSlide 0.3s ease-out;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal::before,
+        .modal::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--color-border);
+        }
+
+        .modal::before {
+            top: 0;
+            left: 0;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .modal::after {
+            bottom: 0;
+            right: 0;
+            border-left: none;
+            border-top: none;
+        }
+
+        .modal-header {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: var(--font-size-lg);
+            text-transform: uppercase;
+            color: var(--color-success);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--color-text-primary);
+            font-size: var(--font-size-xl);
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: var(--color-error);
+        }
+
+        .modal-body {
+            padding: var(--spacing-md);
+        }
+
+        .modal-footer {
+            padding: var(--spacing-md);
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+        }
+
+        /* ========================================
+           FORMS
+        ======================================== */
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: var(--spacing-xs);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+        }
+
+        .form-label::before {
+            content: '> ';
+            color: var(--color-success);
+        }
+
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border-dim);
+            color: var(--color-text-primary);
+            padding: var(--spacing-sm);
+            font-family: var(--font-mono);
+            font-size: var(--font-size-base);
+            outline: none;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+            border-color: var(--color-border);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* ========================================
+           EMPTY STATES
+        ======================================== */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: var(--spacing-xl);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text-muted);
+        }
+
+        .empty-state-title {
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-success);
+        }
+
+        .empty-state-text {
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* ========================================
+           UTILITY CLASSES
+        ======================================== */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-muted {
+            color: var(--color-text-muted);
+        }
+
+        .text-success {
+            color: var(--color-success);
+        }
+
+        .text-error {
+            color: var(--color-error);
+        }
+
+        .text-warning {
+            color: var(--color-warning);
+        }
+
+        /* ========================================
+           SCROLLBAR CUSTOMIZATION
+        ======================================== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-border-dim);
+            border: 1px solid var(--color-bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-border);
+        }
+
+        /* ========================================
+           RESPONSIVE DESIGN
+           Mobile-first approach per design guide
+        ======================================== */
+
+        /* Hamburger Menu Button */
+        .hamburger-menu {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            background: transparent;
+            border: 1px solid var(--color-border);
+            padding: 8px;
+            cursor: pointer;
+            min-width: 44px;
+            min-height: 44px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hamburger-menu span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: var(--color-success);
+            transition: var(--transition-fast);
+        }
+
+        .hamburger-menu.active span:nth-child(1) {
+            transform: rotate(45deg) translateY(6px);
+        }
+
+        .hamburger-menu.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-menu.active span:nth-child(3) {
+            transform: rotate(-45deg) translateY(-6px);
+        }
+
+        /* Tablet: 768px - 1023px */
+        @media (max-width: 1023px) {
+            .sidebar-right {
+                position: absolute;
+                right: 0;
+                top: var(--header-height);
+                height: calc(100vh - var(--header-height));
+                z-index: 100;
+                background: var(--color-bg-secondary);
+                transform: translateX(100%);
+                transition: transform var(--transition-base);
+            }
+
+            .sidebar-right.active {
+                transform: translateX(0);
+            }
+
+            /* Reduce sidebar width slightly */
+            :root {
+                --sidebar-width: 280px;
+                --info-panel-width: 320px;
+            }
+        }
+
+        /* Mobile: 320px - 767px */
+        @media (max-width: 767px) {
+            :root {
+                /* Mobile spacing adjustments */
+                --sidebar-width: 100%;
+                --info-panel-width: 100%;
+                --header-height: 56px;
+                --compose-height: 140px;
+                --spacing-md: 12px;
+                --spacing-lg: 16px;
+
+                /* Slightly larger fonts for readability */
+                --font-size-sm: 13px;
+                --font-size-base: 14px;
+                --font-size-lg: 16px;
+            }
+
+            /* Show hamburger menu */
+            .hamburger-menu {
+                display: flex;
+            }
+
+            /* Header adjustments */
+            .header {
+                padding: 0 var(--spacing-sm);
+            }
+
+            .header-logo {
+                font-size: var(--font-size-base);
+                letter-spacing: 1px;
+            }
+
+            .header-user {
+                font-size: var(--font-size-xs);
+                padding: 4px 8px;
+            }
+
+            .network-status {
+                font-size: var(--font-size-xs);
+                padding: 4px 8px;
+            }
+
+            /* Hide corner brackets on mobile for cleaner look */
+            .header::before,
+            .header::after {
+                display: none;
+            }
+
+            /* Sidebar as overlay */
+            .sidebar-left {
+                position: fixed;
+                left: 0;
+                top: var(--header-height);
+                height: calc(100vh - var(--header-height));
+                z-index: 200;
+                transform: translateX(-100%);
+                transition: transform var(--transition-base);
+                box-shadow: 4px 0 12px rgba(0, 255, 65, 0.1);
+            }
+
+            .sidebar-left.active {
+                transform: translateX(0);
+            }
+
+            /* Info panel as overlay */
+            .sidebar-right {
+                position: fixed;
+                right: 0;
+                top: var(--header-height);
+                height: calc(100vh - var(--header-height));
+                z-index: 200;
+                transform: translateX(100%);
+                transition: transform var(--transition-base);
+                box-shadow: -4px 0 12px rgba(0, 255, 65, 0.1);
+            }
+
+            .sidebar-right.active {
+                transform: translateX(0);
+            }
+
+            /* Main content full width on mobile */
+            .main-content {
+                width: 100%;
+            }
+
+            .thread-panel {
+                width: 100%;
+            }
+
+            /* Mobile overlay backdrop */
+            .mobile-overlay {
+                display: none;
+                position: fixed;
+                top: var(--header-height);
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 150;
+            }
+
+            .mobile-overlay.active {
+                display: block;
+            }
+
+            /* Touch-friendly buttons (44px minimum) */
+            .btn {
+                min-height: 44px;
+                padding: 12px 20px;
+                font-size: var(--font-size-base);
+            }
+
+            .btn-icon {
+                min-width: 44px;
+                min-height: 44px;
+                padding: 10px;
+            }
+
+            /* Touch-friendly conversation items */
+            .conversation-item {
+                padding: 16px 12px;
+                min-height: 72px;
+            }
+
+            /* Larger touch targets for contact actions */
+            .info-actions .btn {
+                padding: 14px 16px;
+                width: 100%;
+                margin-bottom: 8px;
+            }
+
+            /* Input fields touch-friendly */
+            .search-input {
+                padding: 12px;
+                font-size: var(--font-size-base);
+                min-height: 44px;
+            }
+
+            /* Compose area optimizations */
+            .compose-input {
+                font-size: var(--font-size-base);
+                padding: 12px;
+                min-height: 80px;
+            }
+
+            .compose-actions {
+                padding: 10px 12px;
+                flex-wrap: wrap;
+            }
+
+            .compose-actions .btn {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            /* Modal optimizations */
+            .modal {
+                width: 95%;
+                max-width: 100%;
+                max-height: 90vh;
+                margin: var(--spacing-sm);
+            }
+
+            .modal-header {
+                font-size: var(--font-size-lg);
+                padding: 12px;
+            }
+
+            .modal-content {
+                padding: 12px;
+            }
+
+            .modal-actions {
+                padding: 12px;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .modal-actions .btn {
+                width: 100%;
+            }
+
+            /* Form inputs in modals */
+            .modal input,
+            .modal textarea,
+            .modal select {
+                font-size: var(--font-size-base);
+                padding: 12px;
+                min-height: 44px;
+            }
+
+            .modal textarea {
+                min-height: 100px;
+            }
+
+            /* Thread header mobile */
+            .thread-header {
+                padding: 10px 12px;
+                flex-wrap: wrap;
+            }
+
+            .thread-title {
+                font-size: var(--font-size-lg);
+            }
+
+            .thread-actions {
+                gap: 6px;
+            }
+
+            /* Messages mobile */
+            .messages-container {
+                padding: 12px 8px;
+            }
+
+            .message {
+                max-width: 85%;
+                padding: 10px 12px;
+            }
+
+            .message-text {
+                font-size: var(--font-size-base);
+                word-break: break-word;
+            }
+
+            /* Info panel sections */
+            .info-section {
+                padding: 12px;
+            }
+
+            .info-section-title {
+                font-size: var(--font-size-base);
+            }
+
+            /* Status indicators larger */
+            .status-indicator {
+                width: 10px;
+                height: 10px;
+            }
+
+            /* Notifications mobile */
+            .notification {
+                top: calc(var(--header-height) + 8px);
+                right: 8px;
+                left: 8px;
+                min-width: auto;
+                max-width: calc(100% - 16px);
+            }
+
+            /* Empty state mobile */
+            .empty-state {
+                padding: var(--spacing-lg);
+                font-size: var(--font-size-sm);
+            }
+
+            /* Reduce corner bracket sizes on mobile */
+            .modal::before,
+            .modal::after {
+                width: 12px;
+                height: 12px;
+            }
+        }
+
+        /* Small Mobile: 320px - 480px */
+        @media (max-width: 480px) {
+            :root {
+                --header-height: 52px;
+                --spacing-sm: 6px;
+                --font-size-xs: 11px;
+                --font-size-sm: 12px;
+            }
+
+            .header-logo {
+                font-size: var(--font-size-sm);
+            }
+
+            .header-user span {
+                display: none; /* Hide username text, show only status dot */
+            }
+
+            .network-status span:not(.status-indicator) {
+                display: none; /* Show only status indicator */
+            }
+
+            .conversation-item {
+                padding: 12px 8px;
+            }
+
+            .message {
+                max-width: 90%;
+                padding: 8px 10px;
+                font-size: var(--font-size-sm);
+            }
+        }
+
+        /* Landscape mobile optimization */
+        @media (max-width: 767px) and (orientation: landscape) {
+            :root {
+                --header-height: 48px;
+                --compose-height: 100px;
+            }
+
+            .compose-input {
+                min-height: 60px;
+            }
+        }
+
+        /* Reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ========================================
+           LOADING INDICATOR
+        ======================================== */
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--color-border-dim);
+            border-top-color: var(--color-success);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ========================================
+           NOTIFICATIONS
+        ======================================== */
+        .notification {
+            position: fixed;
+            top: calc(var(--header-height) + var(--spacing-md));
+            right: var(--spacing-md);
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-md);
+            min-width: 300px;
+            z-index: 2000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .notification.success { border-color: var(--color-success); }
+        .notification.error { border-color: var(--color-error); }
+        .notification.warning { border-color: var(--color-warning); }
+        .notification.info { border-color: var(--color-info); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="hamburger-menu" id="hamburgerMenu" onclick="toggleMobileSidebar()" title="Menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div class="header-logo">p2pComm</div>
+                <div class="header-user" id="headerUser">
+                    <div class="user-status"></div>
+                    <span id="userName">Loading...</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="network-status" id="kaspaWalletDisplay" style="display: none;" title="Kaspa Wallet Balance">
+                    <span style="color: var(--color-info);">KAS:</span>
+                    <span id="headerKaspaBalance">0.00</span>
+                </div>
+                <div class="network-status">
+                    <span id="networkStatusText">OFFLINE</span>
+                    <span id="networkPeers">(0)</span>
+                </div>
+                <button class="btn btn-icon" onclick="toggleSettings()" title="Settings">⚙</button>
+            </div>
+        </header>
+
+        <!-- Mobile Overlay Backdrop -->
+        <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobilePanels()"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Sidebar - Conversations -->
+            <aside class="sidebar-left" id="sidebarLeft">
+                <div class="sidebar-header">
+                    <div class="sidebar-title">Conversations</div>
+                    <button class="btn btn-icon" onclick="showAddContactModal()" title="Add Contact">+</button>
+                </div>
+                <div class="search-box">
+                    <input type="text" class="search-input" placeholder="SEARCH CONVERSATIONS..." id="searchInput">
+                </div>
+                <div class="conversations-list" id="conversationsList">
+                    <!-- Conversations will be inserted here -->
+                </div>
+            </aside>
+
+            <!-- Center - Message Thread -->
+            <main class="message-area">
+                <div class="thread-header" id="threadHeader" style="display: none;">
+                    <div class="thread-contact-info">
+                        <div>
+                            <div class="thread-contact-name" id="threadContactName">Contact Name</div>
+                            <div class="thread-contact-status" id="threadContactStatus">Status</div>
+                        </div>
+                    </div>
+                    <div class="thread-actions">
+                        <button class="btn btn-primary" onclick="showConnectModal()" title="Connect to Peer">🔗 Connect</button>
+                        <button class="btn btn-icon" onclick="showContactInfo()" title="Info">ℹ</button>
+                        <button class="btn btn-icon" onclick="clearConversation()" title="Clear">🗑</button>
+                    </div>
+                </div>
+
+                <div id="messagesContainer" class="messages-container">
+                    <!-- Empty state -->
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon">💬</div>
+                        <div class="empty-state-title">NO CONVERSATION SELECTED</div>
+                        <div class="empty-state-text">
+                            Select a conversation from the left sidebar or add a new contact to start messaging
+                        </div>
+                        <button class="btn btn-primary" onclick="showAddContactModal()">Add Contact</button>
+                    </div>
+                </div>
+
+                <div class="compose-area" id="composeArea" style="display: none;">
+                    <div class="compose-toolbar">
+                        <button class="btn btn-icon" title="Attach File">📎</button>
+                        <button class="btn btn-icon" title="Emoji">😀</button>
+                        <button class="btn btn-icon" title="Encrypt">🔒</button>
+                    </div>
+                    <div class="compose-input-area">
+                        <textarea
+                            class="compose-input"
+                            id="messageInput"
+                            placeholder="TYPE MESSAGE... (CTRL+ENTER TO SEND)"
+                            onkeydown="handleMessageInput(event)"></textarea>
+                        <button class="btn btn-primary" onclick="sendMessage()" style="width: 100px;">SEND</button>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar - Info Panel -->
+            <aside class="sidebar-right" id="sidebarRight">
+                <div class="info-section">
+                    <div class="info-section-title">Contact Information</div>
+                    <div class="info-item">
+                        <span class="info-label">NAME:</span>
+                        <span class="info-value" id="infoContactName">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">PEER ID:</span>
+                        <span class="info-value" id="infoContactPeerId">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">STATUS:</span>
+                        <span class="info-value" id="infoContactConnectionStatus">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">ENCRYPTION:</span>
+                        <span class="info-value">E2E</span>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Security</div>
+                    <div class="info-item">
+                        <span class="info-label">VERIFIED:</span>
+                        <span class="info-value" id="infoContactVerified">NO</span>
+                    </div>
+                    <div class="info-item" id="signingKeySection" style="display: none;">
+                        <span class="info-label">SIGNING KEY:</span>
+                        <span class="info-value" id="infoSigningKey" style="font-size: 10px; font-family: monospace;">-</span>
+                    </div>
+                    <div class="info-item" id="encryptionKeySection" style="display: none;">
+                        <span class="info-label">ENCRYPTION KEY:</span>
+                        <span class="info-value" id="infoEncryptionKey" style="font-size: 10px; font-family: monospace;">-</span>
+                    </div>
+                    <div class="info-item" id="noKeysWarning" style="display: none;">
+                        <span style="color: var(--color-warning); font-size: 12px;">⚠️ No public keys stored - messages cannot be verified</span>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Actions</div>
+                    <button class="btn btn-primary" id="copyPublicIdentityBtn" style="width: 100%; margin-bottom: 8px; display: none;" onclick="copyContactPublicIdentity()">📋 COPY PUBLIC IDENTITY</button>
+                    <button class="btn" style="width: 100%; margin-bottom: 8px;" onclick="verifyContact()">VERIFY CONTACT</button>
+                    <button class="btn btn-danger" style="width: 100%;" onclick="deleteContact()">DELETE CONTACT</button>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div class="modal-overlay" id="addContactModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Add Contact</div>
+                <button class="modal-close" onclick="closeModal('addContactModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Import PublicIdentity JSON (Recommended) -->
+                <div class="info-section">
+                    <div class="info-section-title">✅ Import PublicIdentity (Recommended)</div>
+                    <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 12px;">
+                        Import a contact's PublicIdentity JSON for verified, secure messaging
+                    </p>
+                    <div class="form-group">
+                        <textarea class="form-textarea" id="publicIdentityJson" placeholder='Paste PublicIdentity JSON here...
+Example:
+{
+  "peer_id": {...},
+  "display_name": "Alice",
+  "signing_public_key": [...],
+  "encryption_public_key": [...]
+}' style="height: 120px; font-family: 'Courier New', monospace; font-size: 12px;"></textarea>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="importPublicIdentity()">Import & Verify</button>
+                </div>
+
+                <!-- Divider -->
+                <div style="text-align: center; margin: 20px 0; color: var(--color-text-muted);">
+                    <span style="background: var(--color-bg); padding: 0 10px;">OR</span>
+                </div>
+
+                <!-- Manual Entry (Legacy - Unverified) -->
+                <div class="info-section">
+                    <div class="info-section-title">⚠️ Manual Entry (Unverified)</div>
+                    <p style="color: var(--color-warning); font-size: 13px; margin-bottom: 12px;">
+                        Without public keys, message signatures cannot be verified
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-input" id="newContactName" placeholder="Enter contact name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Peer ID</label>
+                        <textarea class="form-textarea" id="newContactPeerId" placeholder="Paste peer ID hex string..." style="height: 60px;"></textarea>
+                    </div>
+                    <button class="btn" style="width: 100%;" onclick="addContactManual()">Add (Unverified)</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('addContactModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="modal-close" onclick="closeModal('settingsModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="info-section">
+                    <div class="info-section-title">Your Identity</div>
+                    <div class="info-item">
+                        <span class="info-label">NAME:</span>
+                        <span class="info-value" id="settingsYourName">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">PEER ID:</span>
+                        <span class="info-value" id="settingsYourPeerId" style="font-size: 10px; word-break: break-all;">-</span>
+                    </div>
+                    <button class="btn" style="width: 100%; margin-top: 12px;" onclick="exportIdentity()">Export Identity</button>
+                    <button class="btn" style="width: 100%; margin-top: 8px;" onclick="showQRCode()">Show QR Code</button>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Network</div>
+                    <div class="form-group">
+                        <label class="form-label">Listen Port</label>
+                        <input type="number" class="form-input" id="settingsPort" value="8080">
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="saveSettings()">Save Settings</button>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Kaspa Blockchain</div>
+                    <div class="form-group">
+                        <label class="form-label">Mode</label>
+                        <select class="form-input" id="kaspaMode" onchange="updateKaspaModeUI()">
+                            <option value="simulation">Simulation (localStorage)</option>
+                            <option value="testnet">Testnet (Real Blockchain)</option>
+                        </select>
+                    </div>
+                    <div id="kaspaTestnetOptions" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">Wallet Password</label>
+                            <input type="password" class="form-input" id="kaspaPassword" placeholder="Enter wallet password">
+                            <small style="color: var(--color-text-muted); font-size: 10px;">
+                                Password derives a deterministic HD wallet. Same password = same wallet.
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">RPC Endpoint</label>
+                            <input type="text" class="form-input" id="kaspaRpcEndpoint" value="wss://testnet.kaspad.net:443">
+                        </div>
+                    </div>
+                    <div class="info-item" id="kaspaWalletInfo" style="display: none;">
+                        <span class="info-label">ADDRESS:</span>
+                        <span class="info-value" id="kaspaAddressDisplay" style="font-size: 10px; word-break: break-all;">-</span>
+                    </div>
+                    <div class="info-item" id="kaspaBalanceInfo" style="display: none;">
+                        <span class="info-label">BALANCE:</span>
+                        <span class="info-value" id="kaspaBalanceDisplay">0 KAS</span>
+                    </div>
+                    <button class="btn" style="width: 100%; margin-top: 12px;" id="kaspaInitBtn" onclick="initializeKaspaWallet()">Initialize Wallet</button>
+                    <button class="btn" style="width: 100%; margin-top: 8px;" id="kaspaRefreshBtn" onclick="refreshKaspaBalance()" style="display: none;">Refresh Balance</button>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Danger Zone</div>
+                    <button class="btn btn-danger" style="width: 100%; margin-bottom: 8px;" onclick="clearAllData()">Clear All Data</button>
+                    <button class="btn btn-danger" style="width: 100%;" onclick="deleteIdentity()">Delete Identity</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('settingsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebRTC Connection Modal -->
+    <div class="modal-overlay" id="connectModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Connect to Peer</div>
+                <button class="modal-close" onclick="closeModal('connectModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="info-section">
+                    <div class="info-section-title">Step 1: Generate Offer</div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                        Create a connection offer to send to your peer.
+                    </p>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="generateConnectionOffer()">
+                        Generate Offer
+                    </button>
+                    <div id="offerOutput" style="display: none; margin-top: 12px;">
+                        <textarea id="offerText" class="form-input" rows="6" readonly
+                                  style="font-size: 10px; resize: vertical;"></textarea>
+                        <button class="btn" style="width: 100%; margin-top: 8px;" onclick="copyOffer()">
+                            Copy Offer
+                        </button>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Step 2: Import Answer</div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                        Paste the answer received from your peer.
+                    </p>
+                    <textarea id="answerInput" class="form-input" rows="6"
+                              placeholder="Paste answer JSON here..."
+                              style="font-size: 10px; resize: vertical;"></textarea>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="importAnswer()">
+                        Import Answer
+                    </button>
+                </div>
+
+                <div class="info-section" style="border-top: 1px solid var(--color-border-dim); padding-top: 16px;">
+                    <div class="info-section-title">OR: Handle Incoming Offer</div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                        If you received an offer, paste it here to generate an answer.
+                    </p>
+                    <textarea id="offerInput" class="form-input" rows="6"
+                              placeholder="Paste offer JSON here..."
+                              style="font-size: 10px; resize: vertical;"></textarea>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="handleIncomingOffer()">
+                        Generate Answer
+                    </button>
+                    <div id="answerOutput" style="display: none; margin-top: 12px;">
+                        <textarea id="answerText" class="form-input" rows="6" readonly
+                                  style="font-size: 10px; resize: vertical;"></textarea>
+                        <button class="btn" style="width: 100%; margin-top: 8px;" onclick="copyAnswer()">
+                            Copy Answer
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('connectModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share PublicIdentity Modal -->
+    <div class="modal-overlay" id="shareIdentityModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">📤 Share My Public Identity</div>
+                <button class="modal-close" onclick="closeModal('shareIdentityModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="info-section">
+                    <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 16px;">
+                        Share this PublicIdentity JSON with contacts to enable verified, secure messaging.
+                        They can import it in the "Add Contact" dialog.
+                    </p>
+                    <div class="form-group">
+                        <textarea
+                            class="form-textarea"
+                            id="myPublicIdentityJson"
+                            readonly
+                            style="height: 250px; font-family: 'Courier New', monospace; font-size: 11px; background: var(--color-bg-secondary);"
+                            placeholder="Your PublicIdentity will appear here...">
+                        </textarea>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="copyMyPublicIdentity()">
+                        📋 Copy to Clipboard
+                    </button>
+                </div>
+
+                <div style="margin-top: 20px; padding: 12px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 4px;">
+                    <p style="font-size: 12px; color: var(--color-text-muted); margin: 0;">
+                        💡 <strong>Tip:</strong> Send this JSON via email, messaging app, or any secure channel to your contact.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('shareIdentityModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- WASM Integration Script -->
+    <script type="module">
+        import init, * as p2p from './pkg/wasm_core.js';
+        import { createWebRTCBridge } from './webrtc.js';
+<<<<<<< HEAD
+        import { createKaspaService } from './kaspa-service.js';
+=======
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+
+        // Global state
+        let wasmModule = null;
+        let webrtcBridge = null;
+<<<<<<< HEAD
+        let kaspaService = null;
+=======
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+        let currentIdentity = null;
+        let currentContact = null;
+        let contacts = [];
+        let conversations = new Map();
+        let kaspaEnabled = true; // Toggle for Kaspa blockchain integration
+
+        // Initialize application
+        async function initApp() {
+            try {
+                showNotification('Initializing p2pComm...', 'info');
+
+                // Initialize WASM module
+                await init();
+                wasmModule = p2p;
+                console.log('WASM module loaded, version:', wasmModule.get_version());
+
+                // Check for existing identity or create new one
+                await loadOrCreateIdentity();
+
+                // Initialize network manager
+                // IMPORTANT: Derive correct peer_id from signing public key (Blake3 hash)
+                // Don't trust the peer_id stored in identity (may be old incorrect format)
+                const signingPublicKey = currentIdentity.keypair.signing.public_key;
+                const myPeerId = wasmModule.derive_peer_id_from_public_key(signingPublicKey);
+                console.log('Using derived peer_id:', myPeerId);
+
+                // Update identity with correct peer_id if it was wrong
+                if (currentIdentity.peer_id !== myPeerId && currentIdentity.peerId !== myPeerId) {
+                    console.log('Updating identity with correct peer_id');
+                    currentIdentity.peer_id = myPeerId;
+                    currentIdentity.peerId = myPeerId;
+                    localStorage.setItem('p2pcomm_identity', JSON.stringify(currentIdentity));
+                }
+
+                await wasmModule.network_init(myPeerId);
+                console.log('Network manager initialized');
+
+                // Set message callback for incoming messages
+                wasmModule.network_set_message_callback((fromPeerId, messageJson) => {
+                    handleIncomingMessage(fromPeerId, messageJson);
+                });
+
+                // Initialize WebRTC bridge
+                webrtcBridge = createWebRTCBridge(wasmModule);
+                webrtcBridge.setLocalPeerId(myPeerId);
+                console.log('WebRTC bridge initialized with peer_id:', myPeerId);
+
+<<<<<<< HEAD
+                // Initialize Kaspa service for blockchain signaling and discovery
+                if (kaspaEnabled) {
+                    await initKaspaService(myPeerId);
+                }
+
+=======
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                // Load contacts and conversations
+                await loadContacts();
+                await loadConversations();
+
+                // Setup event listeners
+                setupEventListeners();
+
+                showNotification('p2pComm ready!', 'success');
+                updateNetworkStatus(kaspaEnabled ? 'KASPA' : 'OFFLINE', 0);
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showNotification('Failed to initialize: ' + error.message, 'error');
+            }
+        }
+
+        // Initialize Kaspa blockchain service
+        async function initKaspaService(myPeerId) {
+            try {
+                kaspaService = createKaspaService(wasmModule);
+
+                // Generate a simulated Kaspa address (in production, this comes from wallet)
+                const kaspaAddress = 'kaspatest:' + myPeerId.substring(0, 58);
+
+                await kaspaService.initialize(myPeerId, kaspaAddress);
+
+                // Set up Kaspa callbacks
+                kaspaService.onPeerDiscovered = handleKaspaPeerDiscovered;
+                kaspaService.onSignalingMessage = handleKaspaSignaling;
+                kaspaService.onMessageReceived = handleKaspaMessage;
+                kaspaService.onConnectionStatusChanged = handleKaspaStatusChange;
+
+                // Announce presence on the blockchain
+                const publicKey = currentIdentity.keypair.signing.public_key;
+                await kaspaService.announcePresence(publicKey);
+
+                console.log('Kaspa service initialized');
+                showNotification('Kaspa blockchain connected', 'success');
+
+            } catch (error) {
+                console.error('Kaspa service init error:', error);
+                kaspaEnabled = false;
+                showNotification('Kaspa service unavailable: ' + error.message, 'warning');
+            }
+        }
+
+        // Handle peer discovered via blockchain
+        function handleKaspaPeerDiscovered(peerInfo) {
+            console.log('Peer discovered via Kaspa:', peerInfo);
+
+            // Check if peer is already in contacts
+            const existing = contacts.find(c => c.peerId === peerInfo.peerId);
+            if (!existing) {
+                showNotification(`New peer discovered: ${peerInfo.peerId.substring(0, 8)}...`, 'info');
+            }
+
+            // Update network peer count
+            const stats = kaspaService.getStats();
+            updateNetworkStatus('KASPA', stats.peersDiscovered);
+        }
+
+        // Handle signaling messages from blockchain
+        async function handleKaspaSignaling(signal) {
+            console.log('Kaspa signaling received:', signal.type, 'from:', signal.fromPeerId);
+            console.log('Current contacts:', JSON.stringify(contacts.map(c => ({ name: c.displayName, peerId: c.peerId }))));
+
+            try {
+                // Find contact for this peer
+                const contact = contacts.find(c => c.peerId === signal.fromPeerId);
+                if (!contact) {
+                    console.warn('Signaling from unknown peer:', signal.fromPeerId);
+                    console.warn('Looking for peer starting with:', signal.fromPeerId?.substring(0, 8));
+                    return;
+                }
+
+                switch (signal.type) {
+                    case 'offer':
+                        // Auto-handle incoming offer
+                        showNotification(`Connection request from ${contact.displayName}`, 'info');
+
+                        // Generate answer and send back via blockchain
+                        const answerData = await webrtcBridge.handleOffer({
+                            peerId: signal.fromPeerId,
+                            sdp: signal.sdp
+                        });
+
+                        if (kaspaService) {
+                            await kaspaService.sendAnswer(
+                                signal.fromPeerId,
+                                answerData.sdp,
+                                signal.sessionId
+                            );
+                        }
+                        break;
+
+                    case 'answer':
+                        // Complete connection with answer
+                        await webrtcBridge.handleAnswer({
+                            peerId: signal.fromPeerId,
+                            sdp: signal.sdp
+                        });
+                        showNotification(`Connected to ${contact.displayName}`, 'success');
+                        break;
+
+                    case 'ice':
+                        // Handle ICE candidates (if trickle ICE is enabled)
+                        console.log('ICE candidates received:', signal.candidates?.length);
+                        break;
+                }
+
+                updateContactConnectionStatus(signal.fromPeerId, 'connecting');
+
+            } catch (error) {
+                console.error('Error handling Kaspa signaling:', error);
+            }
+        }
+
+        // Handle messages received via blockchain (fallback delivery)
+        function handleKaspaMessage(message) {
+            console.log('Message received via Kaspa blockchain:', message);
+
+            // Process as regular incoming message with blockchain delivery method
+            handleIncomingMessage(message.fromPeerId, JSON.stringify(message.payload), 'blockchain');
+
+            showNotification('Message received via blockchain', 'info');
+        }
+
+        // Handle Kaspa connection status changes
+        function handleKaspaStatusChange(status) {
+            console.log('Kaspa status:', status);
+
+            if (status === 'connected') {
+                updateNetworkStatus('KASPA', kaspaService.getStats().peersDiscovered);
+            } else if (status === 'error' || status === 'disconnected') {
+                updateNetworkStatus('OFFLINE', 0);
+            }
+        }
+
+        async function loadOrCreateIdentity() {
+            try {
+                // Check URL for test mode (allows multiple identities in same browser)
+                const urlParams = new URLSearchParams(window.location.search);
+                const testUser = urlParams.get('user'); // e.g., ?user=alice or ?user=bob
+
+                // Use different storage keys for different test users
+                window.testUser = testUser;
+                window.storageKey = testUser ? `p2pcomm_identity_${testUser}` : 'p2pcomm_identity';
+                window.contactsKey = testUser ? `p2pcomm_contacts_${testUser}` : 'p2pcomm_contacts';
+                window.convsKey = testUser ? `p2pcomm_conversations_${testUser}` : 'p2pcomm_conversations';
+
+                if (testUser) {
+                    console.log(`[TEST MODE] Using identity slot: ${testUser}`);
+                }
+
+                // Try to load existing identity from localStorage
+                const savedIdentity = localStorage.getItem(window.storageKey);
+
+                if (savedIdentity) {
+                    // Parse and load existing identity
+                    const identityData = JSON.parse(savedIdentity);
+                    currentIdentity = identityData;
+                    document.getElementById('userName').textContent = identityData.display_name || identityData.displayName;
+                    document.getElementById('settingsYourName').textContent = identityData.display_name || identityData.displayName;
+                    document.getElementById('settingsYourPeerId').textContent = identityData.peer_id || identityData.peerId;
+                } else {
+                    // Create new identity
+                    const displayName = prompt('Enter your display name:', 'User_' + Math.floor(Math.random() * 10000));
+                    if (!displayName) throw new Error('Display name required');
+
+                    // Generate keypair
+                    const keypair = new wasmModule.IdentityKeyPair();
+                    const signingKeypair = keypair.getSigningKeyPair();
+                    const encryptionKeypair = keypair.getEncryptionKeyPair();
+                    const peerId = signingKeypair.publicKeyHex();
+
+                    currentIdentity = {
+                        peer_id: peerId,  // snake_case for Rust
+                        display_name: displayName,  // snake_case for Rust
+                        keypair: {
+                            signing: {
+                                public_key: signingKeypair.publicKeyHex(),
+                                private_key: signingKeypair.privateKeyHex()
+                            },
+                            encryption: {
+                                public_key: encryptionKeypair.publicKeyHex(),
+                                private_key: encryptionKeypair.privateKeyHex()
+                            }
+                        },
+                        created_at: Date.now()
+                    };
+
+                    // Save to localStorage
+                    localStorage.setItem(window.storageKey, JSON.stringify(currentIdentity));
+
+                    document.getElementById('userName').textContent = currentIdentity.display_name;
+                    document.getElementById('settingsYourName').textContent = currentIdentity.display_name;
+                    document.getElementById('settingsYourPeerId').textContent = currentIdentity.peer_id;
+
+                    showNotification('New identity created', 'success');
+                }
+            } catch (error) {
+                console.error('Identity load error:', error);
+                throw error;
+            }
+        }
+
+        async function loadContacts() {
+            const savedContacts = localStorage.getItem(window.contactsKey || 'p2pcomm_contacts');
+            if (savedContacts) {
+                contacts = JSON.parse(savedContacts);
+            } else {
+                contacts = [];
+            }
+        }
+
+        async function loadConversations() {
+            const savedConversations = localStorage.getItem(window.convsKey || 'p2pcomm_conversations');
+            if (savedConversations) {
+                const convArray = JSON.parse(savedConversations);
+                conversations = new Map(convArray);
+            } else {
+                conversations = new Map();
+            }
+            renderConversations();
+        }
+
+        function renderConversations() {
+            const list = document.getElementById('conversationsList');
+
+            if (contacts.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state" style="padding: 40px 20px;">
+                        <div class="empty-state-text">No contacts yet</div>
+                        <button class="btn btn-primary" onclick="showAddContactModal()">Add Contact</button>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = '';
+
+            contacts.forEach(contact => {
+                const conv = conversations.get(contact.peerId) || {
+                    messages: [],
+                    lastMessage: null,
+                    unreadCount: 0
+                };
+
+                const item = document.createElement('div');
+                item.className = 'conversation-item';
+                item.onclick = () => openConversation(contact);
+
+                const lastMsgPreview = conv.lastMessage
+                    ? conv.lastMessage.text.substring(0, 40) + (conv.lastMessage.text.length > 40 ? '...' : '')
+                    : 'No messages yet';
+
+                const lastMsgTime = conv.lastMessage
+                    ? formatTime(conv.lastMessage.timestamp)
+                    : '';
+
+                item.innerHTML = `
+                    <div class="conversation-header">
+                        <span class="conversation-name">${contact.displayName}</span>
+                        <span class="conversation-time">${lastMsgTime}</span>
+                    </div>
+                    <div class="conversation-preview">
+                        ${lastMsgPreview}
+                        ${conv.unreadCount > 0 ? `<span class="conversation-unread">${conv.unreadCount}</span>` : ''}
+                    </div>
+                `;
+
+                list.appendChild(item);
+            });
+        }
+
+        function openConversation(contact) {
+            currentContact = contact;
+
+            // Close mobile panels when conversation is selected
+            closeMobilePanelsOnSelect();
+
+            // Update UI
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.style.display = 'none';
+
+            const threadHeader = document.getElementById('threadHeader');
+            if (threadHeader) threadHeader.style.display = 'flex';
+
+            const composeArea = document.getElementById('composeArea');
+            if (composeArea) composeArea.style.display = 'flex';
+
+            document.getElementById('threadContactName').textContent = contact.displayName;
+
+            // Get real connection status from WebRTC bridge
+            const connectionStatus = webrtcBridge ? webrtcBridge.getConnectionStatus(contact.peerId) : 'disconnected';
+            updateContactConnectionStatus(contact.peerId, connectionStatus);
+
+            // Update info panel
+            document.getElementById('infoContactName').textContent = contact.displayName;
+            document.getElementById('infoContactPeerId').textContent = contact.peerId.substring(0, 16) + '...';
+            document.getElementById('infoContactConnectionStatus').textContent = connectionStatus.toUpperCase();
+
+            // Update security section based on whether contact has public keys
+            const hasKeys = contact.signingPublicKey && contact.encryptionPublicKey;
+
+            if (hasKeys) {
+                // Show verification status with badge
+                const verifiedElement = document.getElementById('infoContactVerified');
+                if (contact.verified) {
+                    verifiedElement.innerHTML = '✅ YES';
+                    verifiedElement.style.color = 'var(--color-success)';
+                } else {
+                    verifiedElement.innerHTML = '⚠️ NO';
+                    verifiedElement.style.color = 'var(--color-warning)';
+                }
+
+                // Format and show key fingerprints (first 8 + last 8 chars)
+                const formatFingerprint = (hex) => {
+                    if (!hex || hex.length < 16) return '-';
+                    return hex.substring(0, 8) + '...' + hex.substring(hex.length - 8);
+                };
+
+                document.getElementById('infoSigningKey').textContent = formatFingerprint(contact.signingPublicKey);
+                document.getElementById('infoEncryptionKey').textContent = formatFingerprint(contact.encryptionPublicKey);
+
+                // Show key sections, hide warning
+                document.getElementById('signingKeySection').style.display = 'block';
+                document.getElementById('encryptionKeySection').style.display = 'block';
+                document.getElementById('noKeysWarning').style.display = 'none';
+
+                // Show copy button for verified contacts
+                document.getElementById('copyPublicIdentityBtn').style.display = 'block';
+            } else {
+                // Legacy contact without keys
+                document.getElementById('infoContactVerified').innerHTML = '⚠️ UNVERIFIED';
+                document.getElementById('infoContactVerified').style.color = 'var(--color-warning)';
+
+                // Hide key sections, show warning
+                document.getElementById('signingKeySection').style.display = 'none';
+                document.getElementById('encryptionKeySection').style.display = 'none';
+                document.getElementById('noKeysWarning').style.display = 'block';
+
+                // Hide copy button
+                document.getElementById('copyPublicIdentityBtn').style.display = 'none';
+            }
+
+            // Load messages
+            renderMessages(contact.peerId);
+
+            // Mark as active
+            document.querySelectorAll('.conversation-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            // Clear unread count
+            const conv = conversations.get(contact.peerId);
+            if (conv) {
+                conv.unreadCount = 0;
+                saveConversations();
+                renderConversations();
+            }
+        }
+
+        function renderMessages(peerId) {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+
+            const conv = conversations.get(peerId);
+            if (!conv || conv.messages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-text">No messages yet. Start the conversation!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            conv.messages.forEach(msg => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `message ${msg.fromMe ? 'sent' : 'received'}`;
+
+<<<<<<< HEAD
+                // Determine delivery method badge
+                let deliveryBadge = '';
+                if (msg.deliveryMethod === 'webrtc') {
+                    deliveryBadge = '<span class="message-status" style="color: var(--color-info);" title="Delivered via WebRTC (direct P2P)">⚡</span>';
+                } else if (msg.deliveryMethod === 'blockchain') {
+                    deliveryBadge = '<span class="message-status" style="color: var(--color-primary);" title="Delivered via Kaspa blockchain">⛓️</span>';
+                }
+
+=======
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                // Determine verification badge
+                let verificationBadge = '';
+                if (!msg.fromMe) {
+                    // Only show verification status for received messages
+                    if (msg.verified === true) {
+                        verificationBadge = '<span class="message-status" style="color: var(--color-success);" title="Signature verified">🔒</span>';
+                    } else if (msg.verified === false) {
+                        verificationBadge = '<span class="message-status" style="color: var(--color-warning);" title="Unverified (no public keys)">⚠️</span>';
+                    }
+                }
+
+<<<<<<< HEAD
+                // Combine status badges
+                const statusBadges = msg.fromMe
+                    ? `${deliveryBadge}<span class="message-status encrypted">sent</span>`
+                    : `${deliveryBadge}${verificationBadge}`;
+
+=======
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                msgDiv.innerHTML = `
+                    <div class="message-content">
+                        <div class="message-text">${escapeHtml(msg.text)}</div>
+                        <div class="message-meta">
+                            <span class="message-time">${formatTime(msg.timestamp)}</span>
+<<<<<<< HEAD
+                            ${statusBadges}
+=======
+                            ${msg.fromMe ? '<span class="message-status encrypted">sent</span>' : verificationBadge}
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(msgDiv);
+            });
+
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        window.handleMessageInput = function(event) {
+            if (event.key === 'Enter' && event.ctrlKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        };
+
+        window.sendMessage = async function() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+
+            if (!text || !currentContact) return;
+
+            try {
+<<<<<<< HEAD
+                // Check if we have a WebRTC connection to this peer
+                const connectionStatus = webrtcBridge.getConnectionStatus(currentContact.peerId);
+                const useBlockchainFallback = connectionStatus !== 'connected' && kaspaEnabled && kaspaService;
+
+                if (connectionStatus !== 'connected' && !useBlockchainFallback) {
+=======
+                // Check if we have a connection to this peer
+                const connectionStatus = webrtcBridge.getConnectionStatus(currentContact.peerId);
+                if (connectionStatus !== 'connected') {
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                    showNotification('Not connected to peer. Please establish connection first.', 'warning');
+                    return;
+                }
+
+                // Create message object for UI
+                const messageId = generateId();
+                const message = {
+                    id: messageId,
+                    fromMe: true,
+                    text: text,
+                    timestamp: Date.now(),
+                    encrypted: false, // MVP: encryption to be added later
+                    delivered: false
+                };
+
+                // Add to conversation UI immediately
+                let conv = conversations.get(currentContact.peerId);
+                if (!conv) {
+                    conv = { messages: [], lastMessage: null, unreadCount: 0 };
+                    conversations.set(currentContact.peerId, conv);
+                }
+
+                conv.messages.push(message);
+                conv.lastMessage = message;
+
+                // Save and update UI
+                saveConversations();
+                renderMessages(currentContact.peerId);
+                renderConversations();
+
+                // Clear input
+                input.value = '';
+
+                // Create and send message via WASM network module
+                // Use the corrected peer_id (was fixed during init if needed)
+                const myPeerId = currentIdentity.peer_id || currentIdentity.peerId;
+                const signingPrivateKey = currentIdentity.keypair.signing.private_key;
+
+                const messageJson = await wasmModule.create_text_message(
+                    myPeerId,  // from
+                    currentContact.peerId,  // to
+                    text,
+                    null,  // reply_to
+                    signingPrivateKey
+                );
+
+                // Wrap in protocol message envelope
+                const protocolBytes = await wasmModule.create_protocol_message(
+                    myPeerId,
+                    currentContact.peerId,
+                    messageJson,
+                    'user_message'
+                );
+
+<<<<<<< HEAD
+                // Send the protocol message - WebRTC or blockchain fallback
+                if (connectionStatus === 'connected') {
+                    // Send via WebRTC (fast, direct)
+                    webrtcBridge.send(currentContact.peerId, protocolBytes);
+                    message.deliveryMethod = 'webrtc';
+                    showNotification('Message sent', 'success');
+                } else if (useBlockchainFallback) {
+                    // Send via Kaspa blockchain (slower, but reliable)
+                    const userMessage = JSON.parse(messageJson);
+                    await kaspaService.sendMessage(currentContact.peerId, {
+                        type: 'user_message',
+                        message: userMessage
+                    });
+                    message.deliveryMethod = 'blockchain';
+                    showNotification('Message sent via blockchain', 'info');
+                }
+=======
+                // Send the protocol message bytes over WebRTC
+                webrtcBridge.send(currentContact.peerId, protocolBytes);
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+
+                // Mark as delivered
+                message.delivered = true;
+                saveConversations();
+                renderMessages(currentContact.peerId);
+<<<<<<< HEAD
+=======
+
+                showNotification('Message sent', 'success');
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+
+            } catch (error) {
+                console.error('Send error:', error);
+                showNotification('Failed to send message: ' + error.message, 'error');
+            }
+        };
+
+        // Handle incoming P2P messages from WASM callback
+<<<<<<< HEAD
+        function handleIncomingMessage(fromPeerId, messageJson, deliveryMethod = 'webrtc') {
+            try {
+                console.log('Received message from:', fromPeerId, 'via', deliveryMethod);
+=======
+        function handleIncomingMessage(fromPeerId, messageJson) {
+            try {
+                console.log('Received message from:', fromPeerId);
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                const protocolMessage = JSON.parse(messageJson);
+                console.log('Protocol message structure:', protocolMessage);
+
+                // Extract user message from protocol envelope
+<<<<<<< HEAD
+                // Support both formats: WebRTC (payload.UserMessage) and Blockchain (type: 'user_message')
+                let message;
+                if (protocolMessage.payload && protocolMessage.payload.UserMessage) {
+                    // WebRTC format
+                    message = protocolMessage.payload.UserMessage.message;
+                } else if (protocolMessage.type === 'user_message' && protocolMessage.message) {
+                    // Blockchain format
+                    message = protocolMessage.message;
+                } else {
+                    console.warn('Non-user message received:', Object.keys(protocolMessage.payload || protocolMessage));
+                    return;
+                }
+
+=======
+                if (!protocolMessage.payload || !protocolMessage.payload.UserMessage) {
+                    console.warn('Non-user message received:', Object.keys(protocolMessage.payload || {}));
+                    return;
+                }
+
+                const message = protocolMessage.payload.UserMessage.message;
+
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                // Find sender in contacts
+                const sender = contacts.find(c => c.peerId === fromPeerId);
+                if (!sender) {
+                    console.warn('Message from unknown peer:', fromPeerId);
+                    showNotification('Message from unknown peer', 'warning');
+                    return;
+                }
+
+                // Verify message signature (if contact has public keys)
+                let verified = false;
+                if (sender.signingPublicKey && sender.encryptionPublicKey) {
+                    try {
+                        // Convert sender to Rust-compatible Contact format
+                        const senderContact = {
+                            peer_id: {
+                                hash: {
+                                    bytes: Array.from(hexToBytes(sender.peerId))
+                                }
+                            },
+                            display_name: sender.displayName,
+                            signing_public_key: Array.from(hexToBytes(sender.signingPublicKey)),
+                            encryption_public_key: Array.from(hexToBytes(sender.encryptionPublicKey)),
+                            verified: sender.verified,
+                            added_at: sender.addedAt,
+                            last_seen: sender.lastSeen || null,
+                            notes: sender.notes || null
+                        };
+
+                        const userMessageJson = JSON.stringify(message);
+                        const senderJson = JSON.stringify(senderContact);
+
+                        verified = wasmModule.verify_message_signature(userMessageJson, senderJson);
+
+                        if (!verified) {
+                            console.error('❌ Invalid signature from', fromPeerId);
+                            showNotification('⚠️ Message with INVALID signature rejected', 'error');
+                            return;  // Reject message with invalid signature
+                        }
+
+                        console.log('✅ Message signature verified from', sender.displayName);
+                    } catch (error) {
+                        console.error('Error verifying signature:', error);
+                        showNotification('⚠️ Signature verification failed: ' + error.message, 'error');
+                        return;  // Reject on verification error
+                    }
+                } else {
+                    console.warn('⚠️ Contact has no public keys - signature cannot be verified');
+                    // Allow message but mark as unverified
+                }
+
+                // Get or create conversation
+                let conv = conversations.get(fromPeerId);
+                if (!conv) {
+                    conv = { messages: [], lastMessage: null, unreadCount: 0 };
+                    conversations.set(fromPeerId, conv);
+                }
+
+                // Add message to conversation
+                // Extract text from content (handle Rust enum serialization)
+                const messageText = message.content.Text?.text || message.content.text || '';
+
+                const incomingMessage = {
+                    id: message.id,
+                    fromMe: false,
+                    text: messageText,
+                    timestamp: message.timestamp,
+                    encrypted: false, // MVP: encryption to be added later
+                    delivered: true,
+<<<<<<< HEAD
+                    verified: verified,  // Store verification status
+                    deliveryMethod: deliveryMethod  // Track delivery method (webrtc or blockchain)
+=======
+                    verified: verified  // Store verification status
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                };
+
+                conv.messages.push(incomingMessage);
+                conv.lastMessage = incomingMessage;
+
+                // Increment unread count if not viewing this conversation
+                if (!currentContact || currentContact.peerId !== fromPeerId) {
+                    conv.unreadCount++;
+                }
+
+                // Save and update UI
+                saveConversations();
+                renderConversations();
+
+                // If viewing this conversation, render messages
+                if (currentContact && currentContact.peerId === fromPeerId) {
+                    renderMessages(fromPeerId);
+                }
+
+                // Show notification
+                showNotification(`New message from ${sender.displayName}`, 'info');
+
+            } catch (error) {
+                console.error('Error handling incoming message:', error);
+                showNotification('Error processing incoming message', 'error');
+            }
+        }
+
+        // WebRTC Connection Functions
+        window.showConnectModal = function() {
+            if (!currentContact) {
+                showNotification('Please select a contact first', 'warning');
+                return;
+            }
+            document.getElementById('connectModal').classList.add('active');
+        };
+
+        window.generateConnectionOffer = async function() {
+            try {
+                if (!currentContact) {
+                    showNotification('No contact selected', 'error');
+                    return;
+                }
+
+                showNotification('Generating offer...', 'info');
+
+                // Create WebRTC offer
+                const offerData = await webrtcBridge.createOffer(currentContact.peerId);
+
+<<<<<<< HEAD
+                // Generate a session ID for tracking
+                const sessionId = generateId();
+
+                // Display in textarea for manual sharing
+=======
+                // Display in textarea
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                const offerJson = JSON.stringify(offerData, null, 2);
+                document.getElementById('offerText').value = offerJson;
+                document.getElementById('offerOutput').style.display = 'block';
+
+<<<<<<< HEAD
+                // Also send via Kaspa blockchain for automatic signaling
+                if (kaspaEnabled && kaspaService) {
+                    try {
+                        await kaspaService.sendOffer(
+                            currentContact.peerId,
+                            offerData.sdp,
+                            sessionId
+                        );
+                        showNotification('Offer generated & sent via blockchain!', 'success');
+                    } catch (blockchainError) {
+                        console.warn('Could not send offer via blockchain:', blockchainError);
+                        showNotification('Offer generated! Share it with your peer.', 'success');
+                    }
+                } else {
+                    showNotification('Offer generated! Share it with your peer.', 'success');
+                }
+=======
+                showNotification('Offer generated! Share it with your peer.', 'success');
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+
+            } catch (error) {
+                console.error('Error generating offer:', error);
+                showNotification('Failed to generate offer: ' + error.message, 'error');
+            }
+        };
+
+        window.copyOffer = function() {
+            const offerText = document.getElementById('offerText');
+            offerText.select();
+            document.execCommand('copy');
+            showNotification('Offer copied to clipboard', 'success');
+        };
+
+        window.importAnswer = async function() {
+            try {
+                const answerInput = document.getElementById('answerInput').value.trim();
+
+                if (!answerInput) {
+                    showNotification('Please paste an answer', 'warning');
+                    return;
+                }
+
+                showNotification('Importing answer...', 'info');
+
+                // Parse answer JSON
+                const answerData = JSON.parse(answerInput);
+
+                // Handle the answer
+                await webrtcBridge.handleAnswer(answerData);
+
+                showNotification('Answer imported! Connection establishing...', 'success');
+
+                // Clear input
+                document.getElementById('answerInput').value = '';
+
+                // Update connection status
+                updateContactConnectionStatus(answerData.peerId, 'connecting');
+
+            } catch (error) {
+                console.error('Error importing answer:', error);
+                showNotification('Failed to import answer: ' + error.message, 'error');
+            }
+        };
+
+        window.handleIncomingOffer = async function() {
+            try {
+                const offerInput = document.getElementById('offerInput').value.trim();
+
+                if (!offerInput) {
+                    showNotification('Please paste an offer', 'warning');
+                    return;
+                }
+
+                showNotification('Processing offer...', 'info');
+
+                // Parse offer JSON
+                const offerData = JSON.parse(offerInput);
+
+                // Handle the offer and generate answer
+                const answerData = await webrtcBridge.handleOffer(offerData);
+
+                // Display answer in textarea
+                const answerJson = JSON.stringify(answerData, null, 2);
+                document.getElementById('answerText').value = answerJson;
+                document.getElementById('answerOutput').style.display = 'block';
+
+                showNotification('Answer generated! Share it with your peer.', 'success');
+
+                // Clear input
+                document.getElementById('offerInput').value = '';
+
+                // Update connection status
+                updateContactConnectionStatus(offerData.peerId, 'connecting');
+
+            } catch (error) {
+                console.error('Error handling offer:', error);
+                showNotification('Failed to handle offer: ' + error.message, 'error');
+            }
+        };
+
+        window.copyAnswer = function() {
+            const answerText = document.getElementById('answerText');
+            answerText.select();
+            document.execCommand('copy');
+            showNotification('Answer copied to clipboard', 'success');
+        };
+
+        function updateContactConnectionStatus(peerId, status) {
+            // Update the thread header if this is the current contact
+            if (currentContact && currentContact.peerId === peerId) {
+                const statusElement = document.getElementById('threadContactStatus');
+                if (statusElement) {
+                    statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                    statusElement.className = 'thread-contact-status';
+
+                    if (status === 'connected') {
+                        statusElement.style.color = 'var(--color-success)';
+                    } else if (status === 'connecting') {
+                        statusElement.style.color = 'var(--color-warning)';
+                    } else {
+                        statusElement.style.color = 'var(--color-text-muted)';
+                    }
+                }
+            }
+        }
+
+        // Helper: Convert hex string to byte array
+        function hexToBytes(hex) {
+            const bytes = [];
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes.push(parseInt(hex.substr(i, 2), 16));
+            }
+            return bytes;
+        }
+
+        // Helper: Convert byte array to hex string
+        function bytesToHex(bytes) {
+            return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+        }
+
+        window.showAddContactModal = function() {
+            document.getElementById('addContactModal').classList.add('active');
+            // Clear all form fields
+            document.getElementById('publicIdentityJson').value = '';
+            document.getElementById('newContactName').value = '';
+            document.getElementById('newContactPeerId').value = '';
+        };
+
+        // Import contact from PublicIdentity JSON (Recommended - Verified)
+        window.importPublicIdentity = async function() {
+            try {
+                const jsonText = document.getElementById('publicIdentityJson').value.trim();
+
+                if (!jsonText) {
+                    showNotification('Please paste PublicIdentity JSON', 'error');
+                    return;
+                }
+
+                // Parse JSON
+                let publicIdentity;
+                try {
+                    publicIdentity = JSON.parse(jsonText);
+                } catch (e) {
+                    showNotification('Invalid JSON format', 'error');
+                    return;
+                }
+
+                // Verify the public identity (peer ID matches public key)
+                const publicIdentityJson = JSON.stringify(publicIdentity);
+                const valid = wasmModule.verify_public_identity(publicIdentityJson);
+
+                if (!valid) {
+                    showNotification('Invalid: Peer ID does not match public key', 'error');
+                    return;
+                }
+
+                // Create contact from public identity
+                const contactJson = wasmModule.create_contact_from_public_identity(publicIdentityJson);
+                const rustContact = JSON.parse(contactJson);
+
+                // Convert to JavaScript contact format with public keys
+                const contact = {
+                    id: generateId(),
+                    displayName: rustContact.display_name,
+                    peerId: rustContact.peer_id.hash.bytes ? bytesToHex(rustContact.peer_id.hash.bytes) : rustContact.peer_id,
+                    signingPublicKey: bytesToHex(rustContact.signing_public_key),
+                    encryptionPublicKey: bytesToHex(rustContact.encryption_public_key),
+                    verified: true,  // Cryptographically verified
+                    addedAt: Date.now(),
+                    lastSeen: null,
+                    notes: null
+                };
+
+                // Check if contact already exists
+                const existingIndex = contacts.findIndex(c => c.peerId === contact.peerId);
+                if (existingIndex >= 0) {
+                    contacts[existingIndex] = contact;  // Update existing
+                    showNotification('Contact updated: ' + contact.displayName, 'success');
+                } else {
+                    contacts.push(contact);
+                    showNotification('Contact added & verified: ' + contact.displayName, 'success');
+                }
+
+<<<<<<< HEAD
+                localStorage.setItem(window.contactsKey || 'p2pcomm_contacts', JSON.stringify(contacts));
+=======
+                localStorage.setItem('p2pcomm_contacts', JSON.stringify(contacts));
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+                renderConversations();
+                closeModal('addContactModal');
+
+                // Clear form
+                document.getElementById('publicIdentityJson').value = '';
+
+            } catch (error) {
+                console.error('Error importing public identity:', error);
+                showNotification('Failed to import: ' + error.message, 'error');
+            }
+        };
+
+        // Manual contact entry (Legacy - Unverified)
+        window.addContactManual = function() {
+            const name = document.getElementById('newContactName').value.trim();
+            const peerId = document.getElementById('newContactPeerId').value.trim();
+
+            if (!name || !peerId) {
+                showNotification('Name and Peer ID required', 'error');
+                return;
+            }
+
+            const contact = {
+                id: generateId(),
+                displayName: name,
+                peerId: peerId,
+                signingPublicKey: null,  // No keys - unverified
+                encryptionPublicKey: null,
+                verified: false,
+                addedAt: Date.now(),
+                lastSeen: null,
+                notes: null
+            };
+
+            contacts.push(contact);
+            localStorage.setItem(window.contactsKey || 'p2pcomm_contacts', JSON.stringify(contacts));
+
+            renderConversations();
+            closeModal('addContactModal');
+            showNotification('⚠️ Contact added (unverified): ' + name, 'warning');
+
+            // Clear form
+            document.getElementById('newContactName').value = '';
+            document.getElementById('newContactPeerId').value = '';
+        };
+
+        window.toggleSettings = function() {
+            document.getElementById('settingsModal').classList.add('active');
+        };
+
+        window.closeModal = function(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        };
+
+        // ========================================
+<<<<<<< HEAD
+        // KASPA WALLET UI FUNCTIONS
+        // ========================================
+
+        window.updateKaspaModeUI = function() {
+            const mode = document.getElementById('kaspaMode').value;
+            const testnetOptions = document.getElementById('kaspaTestnetOptions');
+            testnetOptions.style.display = mode === 'testnet' ? 'block' : 'none';
+        };
+
+        window.initializeKaspaWallet = async function() {
+            const mode = document.getElementById('kaspaMode').value;
+
+            if (mode === 'testnet') {
+                const password = document.getElementById('kaspaPassword').value;
+                if (!password) {
+                    showNotification('Please enter a wallet password', 'warning');
+                    return;
+                }
+
+                const rpcEndpoint = document.getElementById('kaspaRpcEndpoint').value;
+
+                try {
+                    showNotification('Initializing Kaspa wallet...', 'info');
+
+                    // Reinitialize Kaspa service with testnet mode
+                    if (kaspaService) {
+                        await kaspaService.disconnect();
+                    }
+
+                    kaspaService = createKaspaService(wasmModule);
+                    const peerId = currentIdentity.peer_id || currentIdentity.peerId;
+                    const kaspaAddress = 'kaspatest:' + peerId.substring(0, 58);
+
+                    await kaspaService.initialize(peerId, kaspaAddress, {
+                        mode: 'testnet',
+                        password: password,
+                        rpcEndpoint: rpcEndpoint
+                    });
+
+                    // Set up callbacks
+                    kaspaService.onPeerDiscovered = handleKaspaPeerDiscovered;
+                    kaspaService.onSignalingMessage = handleKaspaSignaling;
+                    kaspaService.onMessageReceived = handleKaspaMessage;
+                    kaspaService.onConnectionStatusChanged = handleKaspaStatusChange;
+                    kaspaService.onWalletInitialized = handleWalletInitialized;
+                    kaspaService.onBalanceChanged = handleBalanceChanged;
+
+                    // Announce presence
+                    const publicKey = currentIdentity.keypair.signing.public_key;
+                    await kaspaService.announcePresence(publicKey);
+
+                    showNotification('Kaspa wallet initialized (testnet mode)', 'success');
+                } catch (error) {
+                    console.error('Kaspa wallet init error:', error);
+                    showNotification('Wallet initialization failed: ' + error.message, 'error');
+                }
+            } else {
+                // Simulation mode
+                try {
+                    if (kaspaService) {
+                        await kaspaService.disconnect();
+                    }
+
+                    kaspaService = createKaspaService(wasmModule);
+                    const peerId = currentIdentity.peer_id || currentIdentity.peerId;
+                    const kaspaAddress = 'kaspatest:' + peerId.substring(0, 58);
+
+                    await kaspaService.initialize(peerId, kaspaAddress, { mode: 'simulation' });
+
+                    // Set up callbacks
+                    kaspaService.onPeerDiscovered = handleKaspaPeerDiscovered;
+                    kaspaService.onSignalingMessage = handleKaspaSignaling;
+                    kaspaService.onMessageReceived = handleKaspaMessage;
+                    kaspaService.onConnectionStatusChanged = handleKaspaStatusChange;
+
+                    // Announce presence
+                    const publicKey = currentIdentity.keypair.signing.public_key;
+                    await kaspaService.announcePresence(publicKey);
+
+                    // Hide wallet display in header
+                    document.getElementById('kaspaWalletDisplay').style.display = 'none';
+                    document.getElementById('kaspaWalletInfo').style.display = 'none';
+                    document.getElementById('kaspaBalanceInfo').style.display = 'none';
+
+                    showNotification('Kaspa service initialized (simulation mode)', 'success');
+                } catch (error) {
+                    console.error('Kaspa service init error:', error);
+                    showNotification('Service initialization failed: ' + error.message, 'error');
+                }
+            }
+        };
+
+        function handleWalletInitialized(walletInfo) {
+            console.log('Wallet initialized:', walletInfo);
+
+            // Update settings modal
+            document.getElementById('kaspaWalletInfo').style.display = 'flex';
+            document.getElementById('kaspaBalanceInfo').style.display = 'flex';
+            document.getElementById('kaspaAddressDisplay').textContent = walletInfo.primary_address || '-';
+
+            // Show header wallet display
+            document.getElementById('kaspaWalletDisplay').style.display = 'flex';
+        }
+
+        function handleBalanceChanged(balance) {
+            console.log('Balance changed:', balance);
+
+            // Update balance displays
+            const kasAmount = kaspaService ? kaspaService.sompisToKas(balance) : 0;
+            const formatted = kasAmount.toFixed(4);
+
+            document.getElementById('kaspaBalanceDisplay').textContent = formatted + ' KAS';
+            document.getElementById('headerKaspaBalance').textContent = formatted;
+        }
+
+        window.refreshKaspaBalance = async function() {
+            if (kaspaService && kaspaService.hasWallet()) {
+                try {
+                    showNotification('Refreshing balance...', 'info');
+                    await kaspaService.refreshBalance();
+                } catch (error) {
+                    showNotification('Failed to refresh balance: ' + error.message, 'error');
+                }
+            } else {
+                showNotification('Wallet not initialized', 'warning');
+            }
+        };
+
+        // ========================================
+=======
+>>>>>>> 378b791a299c54c1695b87612e986ca074a0d451
+        // MOBILE NAVIGATION FUNCTIONS
+        // ========================================
+
+        window.toggleMobileSidebar = function() {
+            const sidebar = document.getElementById('sidebarLeft');
+            const hamburger = document.getElementById('hamburgerMenu');
+            const overlay = document.getElementById('mobileOverlay');
+            const infoPanel = document.getElementById('sidebarRight');
+
+            // Close info panel if open
+            if (infoPanel && infoPanel.classList.contains('active')) {
+                infoPanel.classList.remove('active');
+            }
+
+            // Toggle sidebar and overlay
+            sidebar.classList.toggle('active');
+            hamburger.classList.toggle('active');
+            overlay.classList.toggle('active');
+        };
+
+        window.toggleMobileInfoPanel = function() {
+            const infoPanel = document.getElementById('sidebarRight');
+            const overlay = document.getElementById('mobileOverlay');
+            const sidebar = document.getElementById('sidebarLeft');
+            const hamburger = document.getElementById('hamburgerMenu');
+
+            // Close sidebar if open
+            if (sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+                hamburger.classList.remove('active');
+            }
+
+            // Toggle info panel and overlay
+            infoPanel.classList.toggle('active');
+            overlay.classList.toggle('active');
+        };
+
+        window.closeMobilePanels = function() {
+            const sidebar = document.getElementById('sidebarLeft');
+            const infoPanel = document.getElementById('sidebarRight');
+            const hamburger = document.getElementById('hamburgerMenu');
+            const overlay = document.getElementById('mobileOverlay');
+
+            // Close everything
+            sidebar.classList.remove('active');
+            infoPanel.classList.remove('active');
+            hamburger.classList.remove('active');
+            overlay.classList.remove('active');
+        };
+
+        // Close mobile panels when conversation is selected
+        function closeMobilePanelsOnSelect() {
+            if (window.innerWidth <= 767) {
+                closeMobilePanels();
+            }
+        }
+
+        window.exportIdentity = function() {
+            const data = JSON.stringify(currentIdentity, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'p2pcomm_identity.json';
+            a.click();
+            showNotification('Identity exported', 'success');
+        };
+
+        // Copy contact's PublicIdentity JSON for sharing
+        window.copyContactPublicIdentity = function() {
+            if (!currentContact) {
+                showNotification('No contact selected', 'error');
+                return;
+            }
+
+            if (!currentContact.signingPublicKey || !currentContact.encryptionPublicKey) {
+                showNotification('Contact has no public keys to share', 'error');
+                return;
+            }
+
+            try {
+                // Derive correct peer_id from signing public key (should match stored peerId)
+                const correctPeerId = wasmModule.derive_peer_id_from_public_key(currentContact.signingPublicKey);
+
+                // Reconstruct PublicIdentity format from contact
+                const publicIdentity = {
+                    peer_id: {
+                        hash: {
+                            bytes: Array.from(hexToBytes(correctPeerId))
+                        }
+                    },
+                    display_name: currentContact.displayName,
+                    signing_public_key: Array.from(hexToBytes(currentContact.signingPublicKey)),
+                    encryption_public_key: Array.from(hexToBytes(currentContact.encryptionPublicKey))
+                };
+
+                const jsonText = JSON.stringify(publicIdentity, null, 2);
+
+                // Copy to clipboard
+                navigator.clipboard.writeText(jsonText).then(() => {
+                    showNotification('PublicIdentity copied to clipboard', 'success');
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    showNotification('Failed to copy to clipboard', 'error');
+                });
+            } catch (error) {
+                console.error('Error generating PublicIdentity:', error);
+                showNotification('Failed to generate: ' + error.message, 'error');
+            }
+        };
+
+        // Share user's own PublicIdentity
+        window.showQRCode = async function() {
+            try {
+                if (!currentIdentity) {
+                    showNotification('No identity loaded', 'error');
+                    return;
+                }
+
+                // Extract public keys from keypair
+                const signingPublicKey = currentIdentity.keypair.signing.public_key;
+                const encryptionPublicKey = currentIdentity.keypair.encryption.public_key;
+
+                if (!signingPublicKey || !encryptionPublicKey) {
+                    showNotification('Identity missing public keys', 'error');
+                    return;
+                }
+
+                // Derive correct peer_id from signing public key using WASM (Blake3 hash)
+                const correctPeerId = wasmModule.derive_peer_id_from_public_key(signingPublicKey);
+
+                // Construct PublicIdentity structure with correct peer_id
+                const publicIdentity = {
+                    peer_id: {
+                        hash: {
+                            bytes: Array.from(hexToBytes(correctPeerId))
+                        }
+                    },
+                    display_name: currentIdentity.display_name || currentIdentity.displayName,
+                    signing_public_key: Array.from(hexToBytes(signingPublicKey)),
+                    encryption_public_key: Array.from(hexToBytes(encryptionPublicKey))
+                };
+
+                // Pretty print for display
+                const prettyJson = JSON.stringify(publicIdentity, null, 2);
+
+                // Set in textarea
+                document.getElementById('myPublicIdentityJson').value = prettyJson;
+
+                // Show modal
+                document.getElementById('shareIdentityModal').classList.add('active');
+
+            } catch (error) {
+                console.error('Error generating PublicIdentity:', error);
+                showNotification('Failed to generate PublicIdentity: ' + error.message, 'error');
+            }
+        };
+
+        // Copy user's PublicIdentity to clipboard
+        window.copyMyPublicIdentity = function() {
+            const jsonText = document.getElementById('myPublicIdentityJson').value;
+
+            if (!jsonText) {
+                showNotification('No PublicIdentity to copy', 'error');
+                return;
+            }
+
+            navigator.clipboard.writeText(jsonText).then(() => {
+                showNotification('✅ PublicIdentity copied to clipboard', 'success');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showNotification('Failed to copy to clipboard', 'error');
+            });
+        };
+
+        window.saveSettings = function() {
+            showNotification('Settings saved', 'success');
+            closeModal('settingsModal');
+        };
+
+        window.clearConversation = function() {
+            if (!currentContact) return;
+
+            if (confirm('Clear conversation with ' + currentContact.displayName + '?')) {
+                conversations.delete(currentContact.peerId);
+                saveConversations();
+                renderMessages(currentContact.peerId);
+                renderConversations();
+                showNotification('Conversation cleared', 'success');
+            }
+        };
+
+        window.deleteContact = function() {
+            if (!currentContact) return;
+
+            if (confirm('Delete contact ' + currentContact.displayName + '?')) {
+                contacts = contacts.filter(c => c.peerId !== currentContact.peerId);
+                conversations.delete(currentContact.peerId);
+                localStorage.setItem(window.contactsKey || 'p2pcomm_contacts', JSON.stringify(contacts));
+                saveConversations();
+
+                // Reset UI
+                currentContact = null;
+                document.getElementById('emptyState').style.display = 'flex';
+                document.getElementById('threadHeader').style.display = 'none';
+                document.getElementById('composeArea').style.display = 'none';
+
+                renderConversations();
+                showNotification('Contact deleted', 'success');
+            }
+        };
+
+        window.verifyContact = function() {
+            showNotification('Contact verification coming soon', 'info');
+        };
+
+        window.exportContactKey = function() {
+            if (!currentContact) return;
+            showNotification('Key export coming soon', 'info');
+        };
+
+        window.showContactInfo = function() {
+            // On mobile, use overlay toggle; on desktop, use collapsed state
+            if (window.innerWidth <= 767) {
+                toggleMobileInfoPanel();
+            } else {
+                document.getElementById('sidebarRight').classList.toggle('collapsed');
+            }
+        };
+
+        window.clearAllData = function() {
+            if (confirm('Clear all data? This cannot be undone!')) {
+                localStorage.clear();
+                location.reload();
+            }
+        };
+
+        window.deleteIdentity = function() {
+            if (confirm('Delete identity? This cannot be undone!')) {
+                localStorage.removeItem('p2pcomm_identity');
+                location.reload();
+            }
+        };
+
+        function saveConversations() {
+            const convArray = Array.from(conversations.entries());
+            localStorage.setItem(window.convsKey || 'p2pcomm_conversations', JSON.stringify(convArray));
+        }
+
+        function setupEventListeners() {
+            // Search
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                document.querySelectorAll('.conversation-item').forEach(item => {
+                    const name = item.querySelector('.conversation-name').textContent.toLowerCase();
+                    item.style.display = name.includes(query) ? 'block' : 'none';
+                });
+            });
+
+            // Close modals on overlay click
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        overlay.classList.remove('active');
+                    }
+                });
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+
+            container.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function updateNetworkStatus(status, peerCount) {
+            document.getElementById('networkStatusText').textContent = status;
+            document.getElementById('networkPeers').textContent = `(${peerCount})`;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'now';
+            if (diffMins < 60) return `${diffMins}m`;
+            if (diffHours < 24) return `${diffHours}h`;
+            if (diffDays < 7) return `${diffDays}d`;
+
+            return date.toLocaleDateString();
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Export globals
+        window.wasmModule = wasmModule;
+        window.currentIdentity = currentIdentity;
+
+        // Initialize on load
+        initApp();
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "p2pcomm-frontend",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "copy-wasm": "node scripts/copy-wasm.js",
+    "wasm:build": "cd ..\\wasm-core && .\\build.bat",
+    "wasm:build:linux": "cd ../wasm-core && ./build.sh --release",
+    "full-build": "npm run wasm:build && npm run copy-wasm && npm run build",
+    "full-build:linux": "npm run wasm:build:linux && npm run copy-wasm && npm run build"
+  },
+  "devDependencies": {
+    "vite": "^5.0.11",
+    "typescript": "^5.3.3"
+  }
+}

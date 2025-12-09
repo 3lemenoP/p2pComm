@@ -1,0 +1,9 @@
+[workspace]
+members = ["wasm-core", "kaspa-testnet-test-rs"]
+resolver = "2"
+
+[profile.release]
+opt-level = 2       # Optimize with less memory usage
+lto = false         # Disable LTO to reduce memory usage
+codegen-units = 16  # Balance optimization and compile time
+strip = true        # Strip symbols

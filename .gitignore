@@ -1,0 +1,56 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local settings
+.claude/settings.local.json
+**/.claude/settings.local.json
+
+# Log files
+*.log
+**/*.log
+
+# Wallet files (may contain sensitive data)
+wallet/
+
+# Documentation (regenerate as needed)
+*.md
+docs/
+archive/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Binary directories
+/kaspad-bin/
+
+# Test artifacts
+*.profraw
+
+# Frontend build artifacts
+frontend/dist/
+
+# Node modules
+node_modules/

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>p2pComm - Secure Messaging</title>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="hamburger-menu" id="hamburgerMenu" onclick="window.p2pcomm.toggleMobileSidebar()" title="Menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div class="header-logo">p2pComm</div>
+                <div class="header-user" id="headerUser">
+                    <div class="user-status"></div>
+                    <span id="userName">Loading...</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="network-status" id="kaspaWalletDisplay" style="display: none;" title="Kaspa Wallet Balance">
+                    <span style="color: var(--color-info);">KAS:</span>
+                    <span id="headerKaspaBalance">0.00</span>
+                </div>
+                <div class="network-status">
+                    <span id="networkStatusText">OFFLINE</span>
+                    <span id="networkPeers">(0)</span>
+                </div>
+                <button class="btn btn-icon" onclick="window.p2pcomm.toggleSettings()" title="Settings">⚙</button>
+            </div>
+        </header>
+
+        <!-- Mobile Overlay Backdrop -->
+        <div class="mobile-overlay" id="mobileOverlay" onclick="window.p2pcomm.closeMobilePanels()"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Sidebar - Conversations -->
+            <aside class="sidebar-left" id="sidebarLeft">
+                <div class="sidebar-header">
+                    <div class="sidebar-title">Conversations</div>
+                    <button class="btn btn-icon" onclick="window.p2pcomm.showAddContactModal()" title="Add Contact">+</button>
+                </div>
+                <div class="search-box">
+                    <input type="text" class="search-input" placeholder="SEARCH CONVERSATIONS..." id="searchInput">
+                </div>
+                <div class="conversations-list" id="conversationsList">
+                    <!-- Conversations will be inserted here -->
+                </div>
+            </aside>
+
+            <!-- Center - Message Thread -->
+            <main class="message-area">
+                <div class="thread-header" id="threadHeader" style="display: none;">
+                    <div class="thread-contact-info">
+                        <div>
+                            <div class="thread-contact-name" id="threadContactName">Contact Name</div>
+                            <div class="thread-contact-status" id="threadContactStatus">Status</div>
+                        </div>
+                    </div>
+                    <div class="thread-actions">
+                        <button class="btn btn-primary" onclick="window.p2pcomm.showConnectModal()" title="Connect to Peer">🔗 Connect</button>
+                        <button class="btn btn-icon" onclick="window.p2pcomm.showContactInfo()" title="Info">ℹ</button>
+                        <button class="btn btn-icon" onclick="window.p2pcomm.clearConversation()" title="Clear">🗑</button>
+                    </div>
+                </div>
+
+                <div id="messagesContainer" class="messages-container">
+                    <!-- Empty state -->
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon">💬</div>
+                        <div class="empty-state-title">NO CONVERSATION SELECTED</div>
+                        <div class="empty-state-text">
+                            Select a conversation from the left sidebar or add a new contact to start messaging
+                        </div>
+                        <button class="btn btn-primary" onclick="window.p2pcomm.showAddContactModal()">Add Contact</button>
+                    </div>
+                </div>
+
+                <div class="compose-area" id="composeArea" style="display: none;">
+                    <div class="compose-toolbar">
+                        <button class="btn btn-icon" title="Attach File">📎</button>
+                        <button class="btn btn-icon" title="Emoji">😀</button>
+                        <button class="btn btn-icon" title="Encrypt">🔒</button>
+                    </div>
+                    <div class="compose-input-area">
+                        <textarea
+                            class="compose-input"
+                            id="messageInput"
+                            placeholder="TYPE MESSAGE... (CTRL+ENTER TO SEND)"
+                            onkeydown="window.p2pcomm.handleMessageInput(event)"></textarea>
+                        <button class="btn btn-primary" onclick="window.p2pcomm.sendMessage()" style="width: 100px;">SEND</button>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Sidebar - Info Panel -->
+            <aside class="sidebar-right" id="sidebarRight">
+                <div class="info-section">
+                    <div class="info-section-title">Contact Information</div>
+                    <div class="info-item">
+                        <span class="info-label">NAME:</span>
+                        <span class="info-value" id="infoContactName">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">PEER ID:</span>
+                        <span class="info-value" id="infoContactPeerId">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">STATUS:</span>
+                        <span class="info-value" id="infoContactConnectionStatus">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">ENCRYPTION:</span>
+                        <span class="info-value">E2E</span>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Security</div>
+                    <div class="info-item">
+                        <span class="info-label">VERIFIED:</span>
+                        <span class="info-value" id="infoContactVerified">NO</span>
+                    </div>
+                    <div class="info-item" id="signingKeySection" style="display: none;">
+                        <span class="info-label">SIGNING KEY:</span>
+                        <span class="info-value" id="infoSigningKey" style="font-size: 10px; font-family: monospace;">-</span>
+                    </div>
+                    <div class="info-item" id="encryptionKeySection" style="display: none;">
+                        <span class="info-label">ENCRYPTION KEY:</span>
+                        <span class="info-value" id="infoEncryptionKey" style="font-size: 10px; font-family: monospace;">-</span>
+                    </div>
+                    <div class="info-item" id="noKeysWarning" style="display: none;">
+                        <span style="color: var(--color-warning); font-size: 12px;">⚠️ No public keys stored - messages cannot be verified</span>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Actions</div>
+                    <button class="btn btn-primary" id="copyPublicIdentityBtn" style="width: 100%; margin-bottom: 8px; display: none;" onclick="window.p2pcomm.copyContactPublicIdentity()">📋 COPY PUBLIC IDENTITY</button>
+                    <button class="btn" style="width: 100%; margin-bottom: 8px;" onclick="window.p2pcomm.verifyContact()">VERIFY CONTACT</button>
+                    <button class="btn btn-danger" style="width: 100%;" onclick="window.p2pcomm.deleteContact()">DELETE CONTACT</button>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div class="modal-overlay" id="addContactModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Add Contact</div>
+                <button class="modal-close" onclick="window.p2pcomm.closeModal('addContactModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Import PublicIdentity JSON (Recommended) -->
+                <div class="info-section">
+                    <div class="info-section-title">✅ Import PublicIdentity (Recommended)</div>
+                    <p style="color: var(--color-text-muted); font-size: 13px; margin-bottom: 12px;">
+                        Import a contact's PublicIdentity JSON for verified, secure messaging
+                    </p>
+                    <div class="form-group">
+                        <textarea class="form-textarea" id="publicIdentityJson" placeholder='Paste PublicIdentity JSON here...
+Example:
+{
+  "peer_id": {...},
+  "display_name": "Alice",
+  "signing_public_key": [...],
+  "encryption_public_key": [...]
+}' style="height: 120px; font-family: 'Courier New', monospace; font-size: 12px;"></textarea>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="window.p2pcomm.importPublicIdentity()">Import & Verify</button>
+                </div>
+
+                <!-- Divider -->
+                <div style="text-align: center; margin: 20px 0; color: var(--color-text-muted);">
+                    <span style="background: var(--color-bg); padding: 0 10px;">OR</span>
+                </div>
+
+                <!-- Manual Entry (Legacy - Unverified) -->
+                <div class="info-section">
+                    <div class="info-section-title">⚠️ Manual Entry (Unverified)</div>
+                    <p style="color: var(--color-warning); font-size: 13px; margin-bottom: 12px;">
+                        Without public keys, message signatures cannot be verified
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-input" id="newContactName" placeholder="Enter contact name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Peer ID</label>
+                        <textarea class="form-textarea" id="newContactPeerId" placeholder="Paste peer ID hex string..." style="height: 60px;"></textarea>
+                    </div>
+                    <button class="btn" style="width: 100%;" onclick="window.p2pcomm.addContactManual()">Add (Unverified)</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="window.p2pcomm.closeModal('addContactModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="modal-close" onclick="window.p2pcomm.closeModal('settingsModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="info-section">
+                    <div class="info-section-title">Your Identity</div>
+                    <div class="info-item">
+                        <span class="info-label">NAME:</span>
+                        <span class="info-value" id="settingsYourName">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">PEER ID:</span>
+                        <span class="info-value" id="settingsYourPeerId" style="font-size: 10px; word-break: break-all;">-</span>
+                    </div>
+                    <button class="btn" style="width: 100%; margin-top: 12px;" onclick="window.p2pcomm.exportIdentity()">Export Identity</button>
+                    <button class="btn" style="width: 100%; margin-top: 8px;" onclick="window.p2pcomm.showQRCode()">Show QR Code</button>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Network</div>
+                    <div class="form-group">
+                        <label class="form-label">Listen Port</label>
+                        <input type="number" class="form-input" id="settingsPort" value="8080">
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="window.p2pcomm.saveSettings()">Save Settings</button>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Kaspa Blockchain</div>
+                    <div class="form-group">
+                        <label class="form-label">Wallet Password</label>
+                        <input type="password" class="form-input" id="kaspaPassword" placeholder="Enter wallet password">
+                        <small style="color: var(--color-text-muted); font-size: 10px;">
+                            Password derives a deterministic HD wallet. Same password = same wallet.
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">RPC Endpoint</label>
+                        <input type="text" class="form-input" id="kaspaRpcEndpoint" value="ws://135.181.102.1:17110">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="kaspaAutoConnect" style="width: auto; margin: 0;">
+                        <label for="kaspaAutoConnect" style="margin: 0; font-size: 11px; color: var(--color-text-muted);">Auto-connect on page load</label>
+                    </div>
+                    <div class="info-item" id="kaspaWalletInfo" style="display: none;">
+                        <span class="info-label">ADDRESS:</span>
+                        <span class="info-value" id="kaspaAddressDisplay" style="font-size: 10px; word-break: break-all;">-</span>
+                    </div>
+                    <div class="info-item" id="kaspaBalanceInfo" style="display: none;">
+                        <span class="info-label">BALANCE:</span>
+                        <span class="info-value" id="kaspaBalanceDisplay">0 KAS</span>
+                    </div>
+                    <button class="btn" style="width: 100%; margin-top: 12px;" id="kaspaInitBtn" onclick="window.p2pcomm.initializeKaspaWallet()">Initialize Wallet</button>
+                    <button class="btn" style="width: 100%; margin-top: 8px;" id="kaspaRefreshBtn" onclick="window.p2pcomm.refreshKaspaBalance()" style="display: none;">Refresh Balance</button>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Danger Zone</div>
+                    <button class="btn btn-danger" style="width: 100%; margin-bottom: 8px;" onclick="window.p2pcomm.clearAllData()">Clear All Data</button>
+                    <button class="btn btn-danger" style="width: 100%;" onclick="window.p2pcomm.deleteIdentity()">Delete Identity</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="window.p2pcomm.closeModal('settingsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebRTC Connection Modal -->
+    <div class="modal-overlay" id="connectModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Connect to Peer</div>
+                <button class="modal-close" onclick="window.p2pcomm.closeModal('connectModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Quick Connect Option -->
+                <div class="info-section" style="background: var(--color-bg-elevated); border: 1px solid var(--color-primary); border-radius: 8px; padding: 16px;">
+                    <div class="info-section-title" style="color: var(--color-primary);">Quick Connect (Recommended)</div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                        Copy this link and share it with your peer. They'll auto-connect when they open it.
+                    </p>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="window.p2pcomm.copyOfferLink()">
+                        Copy Connection Link
+                    </button>
+                </div>
+
+                <div style="text-align: center; margin: 16px 0; color: var(--color-text-muted); font-size: 11px;">
+                    — OR use manual method below —
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Step 1: Generate Offer</div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                        Create a connection offer to send to your peer.
+                    </p>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="window.p2pcomm.generateConnectionOffer()">
+                        Generate Offer
+                    </button>
+                    <div id="offerOutput" style="display: none; margin-top: 12px;">
+                        <textarea id="offerText" class="form-input" rows="6" readonly
+                                  style="font-size: 10px; resize: vertical;"></textarea>
+                        <button class="btn" style="width: 100%; margin-top: 8px;" onclick="window.p2pcomm.copyOffer()">
+                            Copy Offer
+                        </button>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-section-title">Step 2: Import Answer</div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                        Paste the answer received from your peer.
+                    </p>
+                    <textarea id="answerInput" class="form-input" rows="6"
+                              placeholder="Paste answer JSON here..."
+                              style="font-size: 10px; resize: vertical;"></textarea>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="window.p2pcomm.importAnswer()">
+                        Import Answer
+                    </button>
+                </div>
+
+                <div class="info-section" style="border-top: 1px solid var(--color-border-dim); padding-top: 16px;">
+                    <div class="info-section-title">OR: Handle Incoming Offer</div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                        If you received an offer, paste it here to generate an answer.
+                    </p>
+                    <textarea id="offerInput" class="form-input" rows="6"
+                              placeholder="Paste offer JSON here..."
+                              style="font-size: 10px; resize: vertical;"></textarea>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="window.p2pcomm.handleIncomingOffer()">
+                        Generate Answer
+                    </button>
+                    <div id="answerOutput" style="display: none; margin-top: 12px;">
+                        <textarea id="answerText" class="form-input" rows="6" readonly
+                                  style="font-size: 10px; resize: vertical;"></textarea>
+                        <button class="btn" style="width: 100%; margin-top: 8px;" onclick="window.p2pcomm.copyAnswer()">
+                            Copy Answer
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="window.p2pcomm.closeModal('connectModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share PublicIdentity Modal -->
+    <div class="modal-overlay" id="shareIdentityModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Share My Public Identity</div>
+                <button class="modal-close" onclick="window.p2pcomm.closeModal('shareIdentityModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Quick Share Link Option -->
+                <div class="info-section" style="background: var(--color-bg-elevated); border: 1px solid var(--color-primary); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    <div class="info-section-title" style="color: var(--color-primary);">Share via Link (Recommended)</div>
+                    <p style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 12px;">
+                        Copy this link and share it. Anyone who opens it will automatically add you as a contact.
+                    </p>
+                    <button class="btn btn-primary" style="width: 100%;" onclick="window.p2pcomm.copyContactLink()">
+                        Copy Invite Link
+                    </button>
+                </div>
+
+                <div style="text-align: center; margin: 16px 0; color: var(--color-text-muted); font-size: 11px;">
+                    — OR share JSON manually —
+                </div>
+
+                <div class="info-section">
+                    <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 16px;">
+                        Share this PublicIdentity JSON with contacts to enable verified, secure messaging.
+                        They can import it in the "Add Contact" dialog.
+                    </p>
+                    <div class="form-group">
+                        <textarea
+                            class="form-textarea"
+                            id="myPublicIdentityJson"
+                            readonly
+                            style="height: 150px; font-family: 'Courier New', monospace; font-size: 11px; background: var(--color-bg-secondary);"
+                            placeholder="Your PublicIdentity will appear here...">
+                        </textarea>
+                    </div>
+                    <button class="btn" style="width: 100%;" onclick="window.p2pcomm.copyMyPublicIdentity()">
+                        Copy JSON
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="window.p2pcomm.closeModal('shareIdentityModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- Application Entry Point -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Rust
+target/
+Cargo.lock
+
+# Wallet files (IMPORTANT: Never commit real wallets!)
+wallet/
+*.wallet
+*.txt
+
+# Test results
+results/
+*.json
+*.bin
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
