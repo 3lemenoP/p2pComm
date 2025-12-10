@@ -1,6 +1,3 @@
-Here is the `README.md` with all emojis removed and formatted for clean readability.
-
------
 
 # p2pComm
 
@@ -164,16 +161,11 @@ npm run type-check
   * **Blockchain:** Kaspa testnet RPC endpoint (`wss://testnet.kaspa.ws`)
   * **Headers:** COOP/COEP for WASM SharedArrayBuffer support
 
-## License
 
-[License information]
-
-## Contributing
-
-Contributions welcome\! Please read the project specification first.
 
 Built with using Rust, WebAssembly, and Kaspa
 
 -----
+
 
 Would you like me to refine the formatting further or generate a project structure tree for this README?
